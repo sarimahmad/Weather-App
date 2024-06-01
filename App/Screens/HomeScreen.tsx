@@ -5,12 +5,33 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ImageBackground,
 } from 'react-native';
 import React, {useState} from 'react';
-import {SCREEN_WIDTH} from '../OtherComponents/helper/Constants';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RouteProp} from '@react-navigation/native';
 
-const HomeScreen = ({navigation}) => {
-  const [cityName, setCityName] = useState('');
+type RootStackParamList = {
+  WeatherDetailsScreen: {city: string};
+};
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'WeatherDetailsScreen'
+>;
+type HomeScreenRouteProp = RouteProp<
+  RootStackParamList,
+  'WeatherDetailsScreen'
+>;
+
+type Props = {
+  navigation: HomeScreenNavigationProp;
+  route: HomeScreenRouteProp;
+};
+
+const HomeScreen: React.FC<Props> = ({navigation}) => {
+  const [cityName, setCityName] = useState<string>('');
+
   const NavigateToWeatherDetailScreen = () => {
     if (cityName) {
       navigation.navigate('WeatherDetailsScreen', {
@@ -18,17 +39,21 @@ const HomeScreen = ({navigation}) => {
       });
     }
   };
+
   return (
-    <SafeAreaView style={{flex:1}}>
-      <View style={styles.mainConatiner}>
+    <SafeAreaView style={{flex: 1}}>
+      <ImageBackground
+        source={require('../assets/Input.webp')}
+        style={styles.mainConatiner}>
         <Text style={styles.titleText}>Weather App</Text>
         <View style={styles.TextInputContainer}>
           <TextInput
             style={styles.TextInput}
             placeholder="Enter the city name"
-            placeholderTextColor={'#454545'}
+            placeholderTextColor={'white'}
             onChangeText={newText => setCityName(newText)}
             defaultValue={cityName}
+            
             returnKeyType={'search'}
           />
           <TouchableOpacity
@@ -37,7 +62,7 @@ const HomeScreen = ({navigation}) => {
             <Text style={styles.submit_btn_text}>Submit</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ImageBackground>
     </SafeAreaView>
   );
 };
@@ -50,9 +75,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   mainConatiner: {
-    width: SCREEN_WIDTH - 30,
+    flex: 1,
     alignItems: 'center',
-    alignSelf: 'center',
   },
   titleText: {
     fontSize: 20,
@@ -64,22 +88,26 @@ const styles = StyleSheet.create({
   TextInputContainer: {
     width: '100%',
     marginTop: 20,
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
   },
   TextInput: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'black',
     width: '85%',
-    borderWidth: 1,
+    borderWidth: 2,
+    borderColor: 'white',
     borderRadius: 5,
     paddingHorizontal: 10,
   },
   submitButtonContaner: {
-    width: '15%',
+    width: '30%',
+    height: 40,
     justifyContent: 'center',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginTop: 70,
+    borderRadius: 10,
   },
   submit_btn_text: {
     color: 'blue',

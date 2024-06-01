@@ -13,13 +13,67 @@ import {
 import React, {useEffect, useState} from 'react';
 import {API_KEY, API_KEY2} from '../OtherComponents/helper/Constants';
 import Geolocation from '@react-native-community/geolocation';
+import {RouteProp} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
-const WeatherDetailsScreen = ({route}) => {
+type RootStackParamList = {
+  WeatherDetailsScreen: {city: string};
+};
+
+type WeatherDetailsScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'WeatherDetailsScreen'
+>;
+
+type WeatherDetailsScreenRouteProp = RouteProp<
+  RootStackParamList,
+  'WeatherDetailsScreen'
+>;
+
+type Props = {
+  navigation: WeatherDetailsScreenNavigationProp;
+  route: WeatherDetailsScreenRouteProp;
+};
+
+type WeatherData = {
+  location: {
+    name: string;
+  };
+  current: {
+    condition: {
+      text: string;
+      icon: string;
+    };
+    temp_c: number;
+    temp_f: number;
+  };
+};
+
+type ForecastData = {
+  list: Array<{
+    dt: number;
+    main: {
+      temp: number;
+      humidity: number;
+    };
+    weather: Array<{
+      description: string;
+      icon: string;
+    }>;
+    wind: {
+      speed: number;
+    };
+  }>;
+};
+
+const WeatherDetailsScreen: React.FC<Props> = ({route, navigation}) => {
   const {city} = route.params;
-  const [currentWeather, setCurrentWeather] = useState(null);
-  const [forecast, setForecast] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [unit, setUnit] = useState('metric'); // 'metric' for Celsius, 'imperial' for Fahrenheit
+  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(
+    null,
+  );
+  const [forecast, setForecast] = useState<ForecastData['list'] | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [unit, setUnit] = useState<string>('metric'); // 'metric' for Celsius, 'imperial' for Fahrenheit
 
   useEffect(() => {
     setLoading(true);
@@ -33,51 +87,52 @@ const WeatherDetailsScreen = ({route}) => {
       });
   }, [city]);
 
-  const fetchForecast = async () => {
+  const fetchForecast = async (city: string) => {
     const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY2}&units=metric`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      console.warn('City name is Wrong or NetWork Error');
     }
     const data = await response.json();
-    setForecast(data?.list);
+    setForecast(data.list);
   };
 
-  const fetchCurrentWeather = async () => {
+  const fetchCurrentWeather = async (city: string) => {
     const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${city}&aqi=no&alerts=no`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      navigation.goBack();
+      console.warn('City name is Wrong or NetWork Error');
     }
     const data = await response.json();
     setCurrentWeather(data);
   };
 
-  const fetchCurrentWeatherUsingLatLongs = async location => {
+  const fetchCurrentWeatherUsingLatLongs = async (location: string) => {
     const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${location}&aqi=no&alerts=no`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      console.warn('City name is Wrong or NetWork Error');
     }
     const data = await response.json();
     setCurrentWeather(data);
   };
 
-  const fetchWeatherforcastUsingLatLongs = async location => {
+  const fetchWeatherForecastUsingLatLongs = async (location: string) => {
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${
       location.split(',')[0]
     }&lon=${location.split(',')[1]}&appid=${API_KEY2}&units=${unit}`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      console.warn('City name is Wrong or NetWork Error');
     }
     const data = await response.json();
-    setForecast(data?.list);
+    setForecast(data.list);
   };
 
   const handleLocationPress = async () => {
     if (Platform.OS === 'ios') {
-      Geolocation.requestAuthorization('whenInUse');
+      Geolocation.requestAuthorization();
       getLocation();
     } else {
       const granted = await PermissionsAndroid.request(
@@ -104,7 +159,7 @@ const WeatherDetailsScreen = ({route}) => {
       position => {
         const {latitude, longitude} = position.coords;
         fetchCurrentWeatherUsingLatLongs(`${latitude},${longitude}`);
-        fetchWeatherforcastUsingLatLongs(`${latitude},${longitude}`);
+        fetchWeatherForecastUsingLatLongs(`${latitude},${longitude}`);
       },
       error => {
         console.error(error);
@@ -119,7 +174,7 @@ const WeatherDetailsScreen = ({route}) => {
     setUnit(newUnit);
   };
 
-  const renderItem = ({item}) => (
+  const renderItem = ({item}: {item: any}) => (
     <View style={styles.forecastContainer}>
       <Text style={styles.forecastDate}>
         {new Date(item.dt * 1000).toLocaleTimeString()}
@@ -155,7 +210,7 @@ const WeatherDetailsScreen = ({route}) => {
           style={styles.activityIndicator}
         />
       ) : (
-        <View style={styles.content}>
+        <View style={styles.container}>
           <Button
             title="Get Weather at My Location"
             onPress={handleLocationPress}
@@ -164,7 +219,7 @@ const WeatherDetailsScreen = ({route}) => {
             title={`Switch to ${unit === 'metric' ? 'Fahrenheit' : 'Celsius'}`}
             onPress={toggleUnit}
           />
-          <View style={styles.CurrentWeatherContainer}>
+          <View style={styles.currentWeatherContainer}>
             <Text style={styles.cityName}>
               {currentWeather?.location?.name}
             </Text>
@@ -210,7 +265,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  CurrentWeatherContainer: {
+  currentWeatherContainer: {
     marginVertical: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -262,6 +317,10 @@ const styles = StyleSheet.create({
   },
   forecastText: {
     fontSize: 14,
+    color: 'black', // Ensure text is visible
+  },
+  additionalInfo: {
+    fontSize: 12,
     color: 'black', // Ensure text is visible
   },
   contentContainerStyle: {
